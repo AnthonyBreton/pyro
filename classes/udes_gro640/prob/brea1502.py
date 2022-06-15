@@ -12,6 +12,7 @@ Fichier d'amorce pour les livrables de la problématique GRO640'
 
 """
 
+from typing import List
 import numpy as np
 
 from pyro.control.robotcontrollers import EndEffectorPD
@@ -41,17 +42,18 @@ def dh2T( r , d , theta, alpha ):
 
     """
     
-    T = np.zeros((4,4))
-    
-    ###################
-    # Votre code ici
-    ###################
+    T = np.array([
+        [np.cos(theta),     -np.sin(theta) * np.cos(alpha),     np.sin(theta) * np.sin(alpha),      r * np.cos(theta)],
+        [np.sin(theta),     np.cos(theta) * np.cos(alpha),      -np.cos(theta) * np.sin(alpha),     r * np.sin(theta)],
+        [0,                 np.sin(alpha),                      np.cos(alpha),                      d],
+        [0,                 0,                                  0,                                  1]
+        ])
     
     return T
 
 
 
-def dhs2T( r , d , theta, alpha ):
+def dhs2T( r: List, d: List, theta: List, alpha: List):
     """
 
     Parameters
@@ -70,16 +72,15 @@ def dhs2T( r , d , theta, alpha ):
 
     """
     
-    WTT = np.zeros((4,4))
-    
-    ###################
-    # Votre code ici
-    ###################
+    WTT = np.identity((4))
+
+    for index in range(len(r)):
+        WTT = np.dot(WTT, dh2T(r[index] , d[index], theta[index], alpha[index]))
     
     return WTT
 
 
-def f(q):
+def f(q: List):
     """
     
 
@@ -94,11 +95,14 @@ def f(q):
         Effector (x,y,z) position
 
     """
-    r = np.zeros((3,1))
+    r_dh =  [0.0,               0.033,      0.155,          0.135,  0.0,            0.0,        0.0]
+    d =     [0.071,             0.076,      0.0,            0.0,    0.0,            0.217,      q[5]]
+    theta = [np.pi/2 - q[0],    0.0,        np.pi/2 - q[1], -q[2],   np.pi/2 - q[3], -q[4],       0.0]
+    alpha = [0.0,               np.pi/2,    0.0,            0.0,    np.pi/2,        np.pi/2,    0.0]
     
-    ###################
-    # Votre code ici
-    ###################
+    WTT = dhs2T(r_dh, d, theta, alpha)
+
+    r = np.array([WTT[:-1,3]])
     
     return r
 

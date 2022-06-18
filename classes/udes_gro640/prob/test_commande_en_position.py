@@ -20,7 +20,6 @@ ctl = CustomPositionController( sys )
 
 # Cible de position pour l'effecteur
 ctl.rbar = np.array([0,-1])
-#ctl.rbar = np.array([-2,0.0]) #test
 
 # Dynamique en boucle fermée
 clsys = ctl + sys

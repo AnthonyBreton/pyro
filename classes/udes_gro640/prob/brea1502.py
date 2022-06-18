@@ -144,34 +144,22 @@ class CustomPositionController( EndEffectorKinematicController ) :
         
         # Jacobian computation
         J = self.J( q )
-        J_pseudo = J.T @ np.linalg.inv( J @ J.T )
         
         # Ref
         r_desired   = r
-
-
-        # Option avec le temps
-        #if t < 0.5:
-        #    r_desired = r + np.array([1.0 , 0.0])
-        # Option par la norme de la pseudo inverse
-        #if np.linalg.norm(J_pseudo) < 1.35: # chiffre magic no me likey
-        #    r_desired = r + np.array([1.0 , 0.0])
-        
         r_actual    = self.fwd_kin( q )
         
         # Error
         error  = r_desired - r_actual
 
         # Gain
-        lambda_gain = 1.5
+        lambda_error = 1.5
+        lambda_speed = 0.1
 
         # Compute the desired effector velocity 
-        dr_r = lambda_gain * error # Place holder
+        dr_r = lambda_error * error
         # From effector speed to joint speed
-        dq = J_pseudo @ dr_r
-
-        if abs(dq[0]) > 5.0 or abs(dq[1]) > 5.0 or abs(dq[2]) > 5.0:
-            return np.array([2.0, 2.0, 2.0])
+        dq = np.linalg.inv(J.T @ J + (lambda_speed**2) * np.identity(3)) @ J.T @ dr_r
 
         return dq
     

@@ -187,9 +187,11 @@ class CustomDrillingController( EndEffectorPD ) :
         ###################################################
         # Vos paramètres de loi de commande ici !!
         ###################################################
-        
+        self.robot_model = robot_model
+        self.is_over_drill_point = False
+        self.is_done_drilling = False
         # Target effector force
-        self.rbar = np.array([0,0,0]) 
+        self.rbar = np.array([0,0,-200]) 
         
         
     
@@ -214,13 +216,36 @@ class CustomDrillingController( EndEffectorPD ) :
         # Feedback from sensors
         x = y
         [ q , dq ] = self.x2q( x )
-        
-        ##################################
-        # Votre loi de commande ici !!!
-        ##################################
-        
-        tau = np.zeros(self.m)  # place-holder de bonne dimension
-        
+
+        # Jacobian computation
+        J = self.J( q )
+
+        ## Ref
+        r_d = np.array([0.25, 0.25, 0.4])
+        r_actual = self.fwd_kin( q )
+
+        K = 100
+        B = 50
+
+        is_approaching = not np.isclose(r_d, r_actual, atol=0.001).all() and self.is_over_drill_point == False
+        is_drilling = not np.isclose(0.2, r_actual[2], atol=0.001) and self.is_done_drilling == False
+        is_out_of_hole = np.isclose(0.4, r_actual[2], atol=0.01)
+
+        if is_approaching:
+            f_e = np.array([0,0,0]) # Control in postion by impedance to approach point no force
+        else:
+            self.is_over_drill_point = True
+            if is_drilling:
+                pass # Control in postion by impedance and force with the -200N to drill down
+            else:
+                self.is_done_drilling = True
+                if is_out_of_hole:
+                    f_e = np.array([0,0,0]) # stop motion
+                else:
+                    f_e = np.array([0,0,45]) # Control in postion by impedance and force to drill back up
+
+        tau = J.T @ ( K * ( r_d - r_actual ) + B * ( - J @ dq ) + f_e ) + self.robot_model.g(q)
+
         return tau
         
     

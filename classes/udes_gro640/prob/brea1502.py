@@ -275,19 +275,27 @@ def goal2r( r_0 , r_f , t_f ):
     """
     # Time discretization
     l = 1000 # nb of time steps
+    time_step = t_f/l
     
     # Number of DoF for the effector only
     m = 3
-    
+
+    # Profile
+    t_discrete = np.arange(0, t_f, time_step)
+
+    s = ( 3 / (t_f**2)) * (t_discrete**2) - ( 2 / (t_f**3)) * (t_discrete**3)
+    ds = ( 6 / (t_f**2)) * t_discrete - ( 6 / (t_f**3)) * (t_discrete**2)
+    dds = ( 6 / (t_f**2)) - ( 12 / (t_f**3)) * t_discrete
+
     r = np.zeros((m,l))
     dr = np.zeros((m,l))
     ddr = np.zeros((m,l))
-    
-    #################################
-    # Votre code ici !!!
-    ##################################
-    
-    
+
+    for index in range(l):
+        r[:,index] = r_0 + s[index] * (r_f - r_0)
+        dr[:,index] = (r_f - r_0) * ds[index]
+        ddr[:,index] = (r_f - r_0) * dds[index]
+
     return r, dr, ddr
 
 
@@ -314,17 +322,62 @@ def r2q( r, dr, ddr , manipulator ):
     
     # Number of DoF
     n = 3
+
+    # robot
+    l1 = manipulator.l1
+    l2 = manipulator.l2
+    l3 = manipulator.l3
     
     # Output dimensions
+    r_effector = np.zeros(l)
     q = np.zeros((n,l))
     dq = np.zeros((n,l))
     ddq = np.zeros((n,l))
-    
-    #################################
-    # Votre code ici !!!
-    ##################################
-    
-    
+    J = np.zeros((3, 3, l))
+    J_inv = np.zeros((3, 3, l))
+    dJ = np.zeros((3, 3, l))
+
+    for index in range(l):
+        x = r[0, index]
+        y = r[1, index]
+        z = r[2, index] - l1
+        r_effector[index] = np.sqrt(x**2 + y**2 + z**2)
+
+        # Angular position of joints
+        q[0, index] = np.arctan2(y, x)
+        q3 = q[2, index] = np.pi - np.arccos((l2**2 + l3**2 - r_effector[index]**2) / (2 * l2 * l3))
+        if q3 < 0.0:
+            q[1, index] = np.arcsin(z / r_effector[index]) + np.arccos( (l2**2 + r_effector[index]**2 - l3**2) / (2 * l2 * r_effector[index]))
+        else:
+            q[1, index] = np.arcsin(z / r_effector[index]) - np.arccos( (l2**2 + r_effector[index]**2 - l3**2) / (2 * l2 * r_effector[index]))
+
+        # Angular velocity of joints
+        J[:, :, index] = manipulator.J( q[:, index] )
+        J_inv[:, :, index] = np.linalg.inv(J[:, :, index])
+        dq[:, index] = J_inv[:, :, index] @ dr[:, index]
+
+        # Angular acceleration of joints
+        #[c1,s1,c2,s2,c3,s3,c23,s23] = manipulator.trig( q[:, index] )
+        #dq1 = dq[0, index]
+        #dq2 = dq[1, index]
+        #dq3 = dq[2, index]
+#
+        #dJ[0,0, index] =  
+        #
+        #-s1*(l3*c23 + l2*c2)
+        #
+        #dJ[0,1, index] =  -c1*(l3*s23 + l2*s2)
+        #dJ[0,2, index] =  -l3*s23*c1
+        #
+        #dJ[1,0, index] =   c1*(l3*c23 + l2*c2)
+        #dJ[1,1, index] =  -s1*(l3*s23 + l2*s2)        
+        #dJ[1,2, index] =  -l3*s23*s1
+        #
+        #dJ[2,0, index] =  0
+        #dJ[2,1, index] =  l3*c23 + l2*c2
+        #dJ[2,2, index] =  l3*c23
+        #ddq[:, index] = J_inv[:, :, index] @ (ddr[:, index] - dJ @ dq[:, index])
+
     return q, dq, ddq
 
 
@@ -354,9 +407,11 @@ def q2torque( q, dq, ddq , manipulator ):
     # Output dimensions
     tau = np.zeros((n,l))
     
-    #################################
-    # Votre code ici !!!
-    ##################################
-    
+    for index in range(l):
+        I = manipulator.H(q[:, index])
+        C = manipulator.C(q[:, index], dq[:, index])
+        G = manipulator.g(q[:, index])
+        B = manipulator.B(q[:, index])
+        tau[:, index] = np.linalg.inv(B) @ (I @ ddq[:, index] + C @ dq[:, index] + G)
     
     return tau

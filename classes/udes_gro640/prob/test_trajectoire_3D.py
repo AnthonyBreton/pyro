@@ -6,9 +6,10 @@ Created on Fri May  1 19:51:49 2020
 @author: alex
 """
 import numpy as np
+import matplotlib
 
 from gro640_robots import DrillingRobot
-from brea1502      import goal2r, r2q # Load your functions
+from brea1502      import goal2r, r2q, q2torque # Load your functions
 
 # Define end-effector motion
 r_0 = np.array([  0.5,   0.0,   1.0]) # start
@@ -32,6 +33,8 @@ dq1 = dq[0,:]
 dq2 = dq[1,:]
 dq3 = dq[2,:]
 
+tau = q2torque(q, dq, ddq, model)
+
 ###################################################
 # Direct joint trajectory testing
 #q1 = np.linspace(0,1, n)     # q1(t)
@@ -53,6 +56,9 @@ sys.traj.x[:,2]  = q3
 sys.traj.x[:,3]  = dq1
 sys.traj.x[:,4]  = dq2
 sys.traj.x[:,5]  = dq3
+sys.traj.u[:,0]  = tau[0, :]
+sys.traj.u[:,1]  = tau[1, :]
+sys.traj.u[:,2]  = tau[2, :]
 
 # Visualise trajectory with animation
 sys.animate_simulation( is_3d = True )
@@ -62,3 +68,6 @@ sys.plot_trajectory('x')
 
 # Visualise x-y-z trajectory of the end-effector
 sys.plot_end_effector_trajectory()
+
+# Visualise joint torques 
+sys.plot_trajectory('u')

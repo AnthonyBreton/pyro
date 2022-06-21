@@ -12,7 +12,6 @@ Fichier d'amorce pour les livrables de la problématique GRO640'
 
 """
 
-from typing import List
 import numpy as np
 
 from pyro.control.robotcontrollers import EndEffectorPD
@@ -53,7 +52,7 @@ def dh2T( r , d , theta, alpha ):
 
 
 
-def dhs2T( r: List, d: List, theta: List, alpha: List):
+def dhs2T( r, d, theta, alpha ):
     """
 
     Parameters
@@ -80,7 +79,7 @@ def dhs2T( r: List, d: List, theta: List, alpha: List):
     return WTT
 
 
-def f(q: List):
+def f(q):
     """
     
 

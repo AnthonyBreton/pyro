@@ -95,10 +95,10 @@ def f(q: List):
         Effector (x,y,z) position
 
     """
-    r_dh =  [0.0,               0.033,      0.155,          0.135,  0.0,            0.0,        0.0]
-    d =     [0.071,             0.076,      0.0,            0.0,    0.0,            0.217,      q[5]]
-    theta = [np.pi/2 - q[0],    0.0,        np.pi/2 - q[1], -q[2],   np.pi/2 - q[3], -q[4],       0.0]
-    alpha = [0.0,               np.pi/2,    0.0,            0.0,    np.pi/2,        np.pi/2,    0.0]
+    r_dh =  [0.033,             0.155,          0.135,  0.0,            0.0,        0.0]
+    d =     [0.147,             0.0,            0.0,    0.0,            0.217,      q[5]]
+    theta = [np.pi/2 - q[0],    np.pi/2 - q[1], -q[2],  np.pi/2 - q[3], -q[4],      0.0]
+    alpha = [np.pi/2,           0.0,            0.0,    np.pi/2,        np.pi/2,    0.0]
     
     WTT = dhs2T(r_dh, d, theta, alpha)
 
@@ -357,26 +357,24 @@ def r2q( r, dr, ddr , manipulator ):
         dq[:, index] = J_inv[:, :, index] @ dr[:, index]
 
         # Angular acceleration of joints
-        #[c1,s1,c2,s2,c3,s3,c23,s23] = manipulator.trig( q[:, index] )
-        #dq1 = dq[0, index]
-        #dq2 = dq[1, index]
-        #dq3 = dq[2, index]
-#
-        #dJ[0,0, index] =  
-        #
-        #-s1*(l3*c23 + l2*c2)
-        #
-        #dJ[0,1, index] =  -c1*(l3*s23 + l2*s2)
-        #dJ[0,2, index] =  -l3*s23*c1
-        #
-        #dJ[1,0, index] =   c1*(l3*c23 + l2*c2)
-        #dJ[1,1, index] =  -s1*(l3*s23 + l2*s2)        
-        #dJ[1,2, index] =  -l3*s23*s1
-        #
-        #dJ[2,0, index] =  0
-        #dJ[2,1, index] =  l3*c23 + l2*c2
-        #dJ[2,2, index] =  l3*c23
-        #ddq[:, index] = J_inv[:, :, index] @ (ddr[:, index] - dJ @ dq[:, index])
+        [c1,s1,c2,s2,c3,s3,c23,s23] = manipulator.trig( q[:, index] )
+        dq1 = dq[0, index]
+        dq2 = dq[1, index]
+        dq3 = dq[2, index]
+
+        dJ[0,0, index] =  -c1*(l3*c23 + l2*c2) * dq1 + -s1*(-l3*s23 - l2*s2) * dq2 + -s1*(-l3*s23) * dq3      
+        dJ[0,1, index] =  s1*(l3*s23 + l2*s2) * dq1 + -c1*(l3*c23 + l2*c2) * dq2 + -c1*(l3*c23) * dq3
+        dJ[0,2, index] =  (l3*s23*s1) * dq1 + (-l3*c23*c1) * dq2 + (-l3*c23*c1) * dq3
+        
+        dJ[1,0, index] =   -s1*(l3*c23 + l2*c2) * dq1 + c1*(-l3*s23 - l2*s2) * dq2 + c1*(-l3*s23) * dq3
+        dJ[1,1, index] =  -c1*(l3*s23 + l2*s2) * dq1 + -s1*(l3*c23 + l2*c2) * dq2 + -s1*(l3*c23) * dq3
+        dJ[1,2, index] =  (-l3*s23*c1) * dq1 + (-l3*c23*s1) * dq2 + (-l3*c23*s1) * dq3
+        
+        dJ[2,0, index] =  0
+        dJ[2,1, index] =  (-l3*s23 - l2*s2) * dq2 + (-l3*s23) * dq3
+        dJ[2,2, index] =  (-l3*s23) * dq2 + (-l3*s23) * dq3
+
+        ddq[:, index] = J_inv[:, :, index] @ (ddr[:, index] - dJ[:,:, index] @ dq[:, index])
 
     return q, dq, ddq
 

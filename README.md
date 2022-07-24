@@ -1,5 +1,8 @@
 # Pyro 
 
+## Install
+Run ```py setup.py install```
+
 An object-based toolbox for robot dynamic simulation, analysis, control and planning. 
 
 <table>
